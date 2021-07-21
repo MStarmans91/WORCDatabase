@@ -63,10 +63,32 @@ is directly fed from XNAT into WORC. For the two previously publicly published
 datasets used in the WORC MEDIA paper, some additional steps are performed.
 
 ### Glioma dataset
-To Do
+For theg glioma dataset, radiomics features are supplied instead of raw
+imaging data. As these have been created using Python2 and a specific version
+of pandas, these files cannot directly be fed into WORC. Therefore,
+we have created two scripts to convert the feature files to a format
+that can be fed into WORC, which can be found in the *helpers* folder:
+
+1. ``convert_features_hdf5_to_csv``: this script should be run in a Python2
+  environment with the pandas 0.19.0 and tables package installed. The .hdf5
+  files containing the features are converted to .csv files.
+2. ``convert_features_csv_to_hdf5.py``: this script should be run in a Python3
+  environment with pandas installed (any version, as long as you are using
+  the same one when running the WORC experiment). The .csv files which were
+  created by the previous function are converted back to .hdf5 files, but
+  now with the same pandas version as you are using for WORC. The features
+  are also renamed to correspond with the formatting used in WORC
+
+Documentation for these functions can be found in the respective files. Note
+that you first have to download the features from http://dx.doi.org/10.17632/rssf5nxxby.3.
 
 ### Head and neck dataset
-To Do
+For the head and neck dataset, the data can be found at https://xnat.bmia.nl/data/projects/stwstrategyhn1. This data can be directly fed into WORC. However, in the
+experiment conducted in the paper, we predict the T-stage based on GTV-1 segmentations,
+which are both missing for some of the patients. Hence, before running the experiment,
+we first check for which patients these are available and only include those.
+This is automatically done in the ``run_experiment`` function when using the
+head and neck dataset.
 
 ## Known Issues
 See the WORC FAQ: https://worc.readthedocs.io/en/latest/static/faq.html
