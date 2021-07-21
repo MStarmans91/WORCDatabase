@@ -1,5 +1,5 @@
 # WORC Database: Downloaders and Experiments
-This repository contains cripts to download six public datasets
+This repository contains scripts to download six public datasets
 and reproduce radiomics experiments on these six datasets and two other
 public datasets. The six public datasets are described in the following paper:
 
@@ -14,12 +14,12 @@ The experiments are described in the following paper:
 When using parts of this code or the above datasets, please cite the two
 above mentioned papers. Feel free to also cite the code from this repository:
 
-``Martijn P.A. Starmans. WORCDatabase. Zenodo (2021). Available from:  https://github.com/MStarmans91/WORCDatabase. DOI: To Do``
+``Martijn P.A. Starmans. WORCDatabase. Zenodo (2021). Available from:  https://github.com/MStarmans91/WORCDatabase. DOI: http://doi.org/10.5281/zenodo.5119040``
 
-For the DOI, visit (To Do: now WORC code) [![][DOI]][DOI-lnk].
+For the DOI, visit [![][DOI]][DOI-lnk].
 
-[DOI]: https://zenodo.org/badge/DOI/10.5281/zenodo.3840534.svg
-[DOI-lnk]: https://zenodo.org/badge/latestdoi/92295542
+[DOI]: https://zenodo.org/badge/388076660.svg
+[DOI-lnk]: https://zenodo.org/badge/latestdoi/388076660
 
 ## Installation
 The experiments only require the WORC Python package to be installed,
