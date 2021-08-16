@@ -16,15 +16,43 @@
 # limitations under the License.
 
 import xnat
-import WORC
+from WORC import BasicWORC
 import pandas as pd
 import os
 import fastr
+import argparse
 
 # General settings
 valid_datasets = ['HN', 'Lipo', 'Desmoid', 'GIST', 'Liver', 'CRLM', 'Melanoma']
 CT_datasets = ['HN', 'GIST', 'CRLM', 'Melanoma']
 MRI_datasets = ['Lipo', 'Desmoid', 'Liver']
+
+
+def main():
+    parser = argparse.ArgumentParser(description='WORC Database experiments')
+    parser.add_argument('-dataset', '--dataset', metavar='dataset',
+                        dest='dataset', type=str, required=True,
+                        help='Name of dataset to be used for experiment')
+    parser.add_argument('-coarse', '--coarse', metavar='coarse', dest='coarse',
+                        type=str, required=False,
+                        help='Determine whether to run a coarse experiment or not')
+    parser.add_argument('-name', '--name', metavar='name',
+                        dest='name', type=str, required=False,
+                        help='Determine name of the experiment')
+    parser.add_argument('-eval', '--eval', metavar='eval', dest='eval',
+                        type=str, required=False,
+                        help='Determine wheter to add evaluation or not')
+    parser.add_argument('-verbose', '--verbose', metavar='verbose', dest='verbose',
+                        type=str, required=False,
+                        help='Verbose')
+    args = parser.parse_args()
+
+    # Run the experiment
+    run_experiment(dataset=args.dataset,
+                   coarse=args.coarse,
+                   name=args.name,
+                   add_evaluation=args.eval,
+                   verbose=args.verbose)
 
 
 def get_source_data_HN(verbose=True, csv_label_file=None):
@@ -157,33 +185,68 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
         experiment = subject.experiments[0]
         scan = experiment.scans[0]
 
-        # There are patients where the data is organized differently
-        if subject.label == 'Lipo-073':
-            print("Patient Lipo-73 has two tumors, including both.")
+        if dataset in ['Melanoma', 'CRLM']:
+            # Multiple lesions per patient, thus loop over segmentations
             image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
+            for file_name in scan.resources['NIFTI'].files:
+                # Check if file is an image or segmentation
+                if 'segmentation' in file_name:
+                    # CRLM: only include CNN segmentations for default experiment
+                    if dataset == 'CRLM' and '_CNN' not in file_name:
+                        continue
 
-            # First tumor: Lipoma
-            segmentation_uri = scan.resources['NIFTI'].files['segmentation_Lipoma.nii.gz'].external_uri()
-            images[label] = image_uri
-            segmentations[label] = segmentation_uri
-            ground_truths[label] = 0
-            if verbose:
-                print(f"\tIncluding patient {label}, diagnosis 0.")
+                    segmentation_uri = scan.resources['NIFTI'].files[file_name].external_uri()
 
-            # Second tumor: WDLPS
-            segmentation_uri = scan.resources['NIFTI'].files['segmentation_WDLPS.nii.gz'].external_uri()
-            ground_truth = 1
+                    # Add found sources to data dicitonaries
+                    images[label] = image_uri
+                    segmentations[label] = segmentation_uri
+                    ground_truths[label] = ground_truth
+                    if verbose:
+                        print(f"\tIncluding patient {label}, diagnosis {ground_truth}, segmentation {file_name}.")
 
         else:
-            image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
-            segmentation_uri = scan.resources['NIFTI'].files['segmentation.nii.gz'].external_uri()
-            if verbose:
-                print(f"\tIncluding patient {label}, diagnosis {ground_truth}.")
+            # There are patients where the data is organized differently
+            if subject.label == 'Lipo-073':
+                print("Patient Lipo-073 has two lesions, including both.")
+                image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
 
-        # Add found sources to data dicitonaries
-        images[label] = image_uri
-        segmentations[label] = segmentation_uri
-        ground_truths[label] = ground_truth
+                # First lesion: Lipoma
+                segmentation_uri = scan.resources['NIFTI'].files['segmentation_Lipoma.nii.gz'].external_uri()
+                images[label] = image_uri
+                segmentations[label] = segmentation_uri
+                ground_truths[label] = 0
+                if verbose:
+                    print(f"\tIncluding patient {label}, diagnosis 0.")
+
+                # Second lesion: WDLPS
+                segmentation_uri = scan.resources['NIFTI'].files['segmentation_WDLPS.nii.gz'].external_uri()
+                ground_truth = 1
+
+            elif subject.label == 'GIST-018':
+                print("Patient GIST-018 has two lesions, including both.")
+                image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
+
+                # First lesion
+                segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_0.nii.gz'].external_uri()
+                images[label] = image_uri
+                segmentations[label] = segmentation_uri
+                ground_truths[label] = ground_truth
+                if verbose:
+                    print(f"\tIncluding patient {label}, diagnosis 0.")
+
+                # Second lesion
+                segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_1.nii.gz'].external_uri()
+
+            else:
+                image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
+                segmentation_uri = scan.resources['NIFTI'].files['segmentation.nii.gz'].external_uri()
+                if verbose:
+                    print(f"\tIncluding patient {label}, diagnosis {ground_truth}.")
+
+            # Add found sources to data dicitonaries
+            images[label] = image_uri
+            segmentations[label] = segmentation_uri
+            ground_truths[label] = ground_truth
 
     # Convert diagnosis labels to a label CSV file
     df = pd.DataFrame({'Patient': list(ground_truths.keys()),
@@ -193,8 +256,8 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
     return images, segmentations, csv_label_file
 
 
-def run_experiment(dataset='Lipo', coarse=True, name=None,
-                   add_evaluation=False):
+def run_experiment(dataset='Lipo', coarse=False, name=None,
+                   add_evaluation=True, verbose=True):
     """Run a radiomics experiment using WORC on one of eight public datasets.
 
     Parameters
@@ -210,7 +273,7 @@ def run_experiment(dataset='Lipo', coarse=True, name=None,
         Name of the experiment to be used in the output. If None, the dataset
         name will be used.
 
-    add_evaluation: boolean, default False
+    add_evaluation: boolean, default True
         Decide whether additional evaluation tools will be run, see
         https://worc.readthedocs.io/en/latest/static/user_manual.html#evaluation-of-your-network
 
@@ -221,53 +284,63 @@ def run_experiment(dataset='Lipo', coarse=True, name=None,
 
     print(f"Running experiment for dataset {dataset}.")
 
-    # Create an experiment
+    # Create an experiment for binary classification
     if name is None:
         name = dataset
 
-    network = WORC.WORC(name)
-
-    # Create the configuration for WORC
-    config = network.defaultconfig()
+    experiment = BasicWORC(name)
+    experiment.binary_classification(coarse=coarse)
 
     # Look for the source data
     print(f"Scanning for source data on XNAT.")
     if dataset == 'HN':
-        images, segmentations, label_file = get_source_data_HN()
-        config['Labels']['label_names'] = 'Tstage'
+        images, segmentations, label_file = get_source_data_HN(verbose=verbose)
+        label_to_predict = 'Tstage'
     else:
         images, segmentations, label_file =\
-            get_source_data_WORC(dataset=dataset)
-        config['Labels']['label_names'] = 'Diagnosis'
+            get_source_data_WORC(dataset=dataset, verbose=verbose)
+        label_to_predict = 'Diagnosis'
 
     # Check modality
     if dataset in CT_datasets:
         print(f"Dataset {dataset} is CT, disabling image normalization.")
-        config['Preprocessing']['Normalize'] = 'False'
-        config['ImageFeatures']['image_type'] = 'CT'
+        overrides = {
+            'Preprocessing': {
+                'Normalize': 'False',
+            },
+            'ImageFeatures': {
+                'image_type': 'CT'
+            }
+        }
+        experiment.add_config_overrides(overrides)
 
     elif dataset in MRI_datasets:
         print(f"Dataset {dataset} is MRI, enabling image normalization.")
-        config['Preprocessing']['Normalize'] = 'True'
-        config['ImageFeatures']['image_type'] = 'MRI'
+        overrides = {
+            'Preprocessing': {
+                'Normalize': 'True',
+            },
+            'ImageFeatures': {
+                'image_type': 'MRI'
+            }
+        }
+        experiment.add_config_overrides(overrides)
 
     # Set all sources
-    network.images_train.append(images)
-    network.segmentations_train.append(segmentations)
-    network.labels_train.append(label_file)
-    network.configs.append(config)
+    experiment.images_train.append(images)
+    experiment.segmentations_train.append(segmentations)
+    experiment.labels_file_train = label_file
+    experiment.configs.append(config)
+    experiment.predict_labels(label_to_predict)
 
     # Run experiment
-    network.build()
     if add_evaluation:
-        network.add_evaluation(label_type=config['Labels']['label_names'])
-    network.set()
-    # network.execute()
-    #
-    # # Check the output performance, if the experiment finished succesfully
-    # outputfolder = os.path.join(fastr.config.mounts['output'], name)
+        experiment.add_evaluation()
+    experiment.execute()
+
+    # Check the output performance, if the experiment finished succesfully
+    outputfolder = os.path.join(fastr.config.mounts['output'], name)
 
 
 if __name__ == '__main__':
-    dataset = 'Desmoid'
-    run_experiment(dataset)
+    main()
