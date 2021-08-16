@@ -68,79 +68,79 @@ def get_source_data_HN(verbose=True, csv_label_file=None):
         csv_label_file = os.path.join(this_directory, 'pinfo_HN.csv')
 
     # Connect to XNAT and retreive project
-    session = xnat.connect(xnat_url)
-    project = session.projects[project_name]
+    with xnat.connect(xnat_url) as session:
+        project = session.projects[project_name]
 
-    # Loop over patients
-    images = dict()
-    segmentations = dict()
-    tstages = dict()
-    for subject_name in project.subjects:
-        subject = project.subjects[subject_name]
-        has_GTV1 = False
-        has_image_Nifti = False
+        # Loop over patients
+        images = dict()
+        segmentations = dict()
+        tstages = dict()
+        for subject_name in project.subjects:
+            subject = project.subjects[subject_name]
+            has_GTV1 = False
+            has_image_Nifti = False
 
-        # Check if subject has a CT scan
-        for experiment_name in subject.experiments:
-            experiment = subject.experiments[experiment_name]
+            # Check if subject has a CT scan
+            for experiment_name in subject.experiments:
+                experiment = subject.experiments[experiment_name]
 
-            if experiment.session_type is None:  # some files in project don't have _CT postfix
+                if experiment.session_type is None:  # some files in project don't have _CT postfix
+                    if verbose:
+                        print(f"\tSkipping patient {subject.label}, experiment {experiment.label}: type is not CT but {experiment.session_type}.")
+                    continue
+
+                if '_CT' not in experiment.session_type:
+                    if verbose:
+                        print(f"\tSkipping patient {subject.label}, experiment {experiment.label}: type is not CT but {experiment.session_type}.")
+                    continue
+
+                # Patient has CT scan, check for scans with a GTV-1 and image NIFTI
+                for scan_name in experiment.scans:
+                    scan = experiment.scans[scan_name]
+                    for res in scan.resources:
+                        resource_label = scan.resources[res].label
+                        if resource_label == 'NIFTI':
+                            for file_name in scan.resources[res].files:
+                                if 'mask_GTV-1.nii.gz' in file_name:
+                                    # Patient has GTV1 mask
+                                    has_GTV1 = True
+
+                                    # Save uri to GTV1 mask
+                                    GTV1_uri = scan.resources[res].files[file_name].external_uri()
+
+                                elif 'image.nii.gz' in file_name:
+                                    # Patient has image NIFTI
+                                    has_image_Nifti = True
+
+                                    # Save uri to image NIFTI
+                                    image_uri = scan.resources[res].files[file_name].external_uri()
+
+                if not has_GTV1:
+                    print(f"\tExcluding patient {subject.label}: no GTV1 mask.")
+                    continue
+
+                if not has_image_Nifti:
+                    print(f"\tExcluding patient {subject.label}: no image Nifti.")
+                    continue
+
+                # Get the T-stage and binarize
+                tstage = subject.fields['clin_t']
+                if tstage in ['0', '1', '2']:
+                    tstage_binary = 0
+                elif tstage in ['3', '4']:
+                    tstage_binary = 1
+                else:
+                    print(f"\tExcluding patient {subject.label}: unknown t-stage {tstage}.")
+                    continue
+
+                # Patient has GTV1 mask, image Nifti, and known t-stage, so include
                 if verbose:
-                    print(f"\tSkipping patient {subject.label}, experiment {experiment.label}: type is not CT but {experiment.session_type}.")
-                continue
+                    print(f"\tIncluding patient {subject.label}, T-stage {tstage}, binarized to {tstage_binary}.")
 
-            if '_CT' not in experiment.session_type:
-                if verbose:
-                    print(f"\tSkipping patient {subject.label}, experiment {experiment.label}: type is not CT but {experiment.session_type}.")
-                continue
-
-            # Patient has CT scan, check for scans with a GTV-1 and image NIFTI
-            for scan_name in experiment.scans:
-                scan = experiment.scans[scan_name]
-                for res in scan.resources:
-                    resource_label = scan.resources[res].label
-                    if resource_label == 'NIFTI':
-                        for file_name in scan.resources[res].files:
-                            if 'mask_GTV-1.nii.gz' in file_name:
-                                # Patient has GTV1 mask
-                                has_GTV1 = True
-
-                                # Save uri to GTV1 mask
-                                GTV1_uri = scan.resources[res].files[file_name].external_uri()
-
-                            elif 'image.nii.gz' in file_name:
-                                # Patient has image NIFTI
-                                has_image_Nifti = True
-
-                                # Save uri to image NIFTI
-                                image_uri = scan.resources[res].files[file_name].external_uri()
-
-            if not has_GTV1:
-                print(f"\tExcluding patient {subject.label}: no GTV1 mask.")
-                continue
-
-            if not has_image_Nifti:
-                print(f"\tExcluding patient {subject.label}: no image Nifti.")
-                continue
-
-            # Get the T-stage and binarize
-            tstage = subject.fields['clin_t']
-            if tstage in ['0', '1', '2']:
-                tstage_binary = 0
-            elif tstage in ['3', '4']:
-                tstage_binary = 1
-            else:
-                print(f"\tExcluding patient {subject.label}: unknown t-stage {tstage}.")
-                continue
-
-            # Patient has GTV1 mask, image Nifti, and known t-stage, so include
-            if verbose:
-                print(f"\tIncluding patient {subject.label}, T-stage {tstage}, binarized to {tstage_binary}.")
-
-            label = subject.label
-            images[label] = image_uri
-            segmentations[label] = GTV1_uri
-            tstages[label] = tstage_binary
+                label = subject.label
+                images[label] = image_uri
+                segmentations[label] = GTV1_uri
+                tstages[label] = tstage_binary
 
     # Convert tstages to a label CSV file
     df = pd.DataFrame({'Patient': list(tstages.keys()),
@@ -163,90 +163,90 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
         csv_label_file = os.path.join(this_directory, f'pinfo_{dataset}.csv')
 
     # Connect to XNAT and retreive project
-    session = xnat.connect(xnat_url)
-    project = session.projects[project_name]
+    with xnat.connect(xnat_url) as session:
+        project = session.projects[project_name]
 
-    # Loop over patients
-    images = dict()
-    segmentations = dict()
-    ground_truths = dict()
-    for subject_name in project.subjects:
-        subject = project.subjects[subject_name]
-        label = subject.label
-        subject_dataset = subject.fields['dataset']
-        if subject_dataset != dataset:
-            # This subject belongs to a different dataset than the one requested
-            continue
+        # Loop over patients
+        images = dict()
+        segmentations = dict()
+        ground_truths = dict()
+        for subject_name in project.subjects:
+            subject = project.subjects[subject_name]
+            label = subject.label
+            subject_dataset = subject.fields['dataset']
+            if subject_dataset != dataset:
+                # This subject belongs to a different dataset than the one requested
+                continue
 
-        # Obtain the clinical ground_truth
-        ground_truth = int(subject.fields['diagnosis_binary'])
+            # Obtain the clinical ground_truth
+            ground_truth = int(subject.fields['diagnosis_binary'])
 
-        # Get the scan and mask, assuming subject has one experiment and one scan
-        experiment = subject.experiments[0]
-        scan = experiment.scans[0]
+            # Get the scan and mask, assuming subject has one experiment and one scan
+            experiment = subject.experiments[0]
+            scan = experiment.scans[0]
 
-        if dataset in ['Melanoma', 'CRLM']:
-            # Multiple lesions per patient, thus loop over segmentations
-            image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
-            for file_name in scan.resources['NIFTI'].files:
-                # Check if file is an image or segmentation
-                if 'segmentation' in file_name:
-                    # CRLM: only include CNN segmentations for default experiment
-                    if dataset == 'CRLM' and '_CNN' not in file_name:
-                        continue
+            if dataset in ['Melanoma', 'CRLM']:
+                # Multiple lesions per patient, thus loop over segmentations
+                image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
+                for file_name in scan.resources['NIFTI'].files:
+                    # Check if file is an image or segmentation
+                    if 'segmentation' in file_name:
+                        # CRLM: only include CNN segmentations for default experiment
+                        if dataset == 'CRLM' and '_CNN' not in file_name:
+                            continue
 
-                    segmentation_uri = scan.resources['NIFTI'].files[file_name].external_uri()
+                        segmentation_uri = scan.resources['NIFTI'].files[file_name].external_uri()
 
-                    # Add found sources to data dicitonaries
+                        # Add found sources to data dicitonaries
+                        images[label] = image_uri
+                        segmentations[label] = segmentation_uri
+                        ground_truths[label] = ground_truth
+                        if verbose:
+                            print(f"\tIncluding patient {label}, diagnosis {ground_truth}, segmentation {file_name}.")
+
+            else:
+                # There are patients where the data is organized differently
+                if subject.label == 'Lipo-073':
+                    print("Patient Lipo-073 has two lesions, including both.")
+                    image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
+
+                    # First lesion: Lipoma
+                    segmentation_uri = scan.resources['NIFTI'].files['segmentation_Lipoma.nii.gz'].external_uri()
+                    images[label] = image_uri
+                    segmentations[label] = segmentation_uri
+                    ground_truths[label] = 0
+                    if verbose:
+                        print(f"\tIncluding patient {label}, diagnosis 0.")
+
+                    # Second lesion: WDLPS
+                    segmentation_uri = scan.resources['NIFTI'].files['segmentation_WDLPS.nii.gz'].external_uri()
+                    ground_truth = 1
+
+                elif subject.label == 'GIST-018':
+                    print("Patient GIST-018 has two lesions, including both.")
+                    image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
+
+                    # First lesion
+                    segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_0.nii.gz'].external_uri()
                     images[label] = image_uri
                     segmentations[label] = segmentation_uri
                     ground_truths[label] = ground_truth
                     if verbose:
-                        print(f"\tIncluding patient {label}, diagnosis {ground_truth}, segmentation {file_name}.")
+                        print(f"\tIncluding patient {label}, diagnosis 0.")
 
-        else:
-            # There are patients where the data is organized differently
-            if subject.label == 'Lipo-073':
-                print("Patient Lipo-073 has two lesions, including both.")
-                image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
+                    # Second lesion
+                    segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_1.nii.gz'].external_uri()
 
-                # First lesion: Lipoma
-                segmentation_uri = scan.resources['NIFTI'].files['segmentation_Lipoma.nii.gz'].external_uri()
-                images[label] = image_uri
-                segmentations[label] = segmentation_uri
-                ground_truths[label] = 0
-                if verbose:
-                    print(f"\tIncluding patient {label}, diagnosis 0.")
+                else:
+                    image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
+                    segmentation_uri = scan.resources['NIFTI'].files['segmentation.nii.gz'].external_uri()
+                    if verbose:
+                        print(f"\tIncluding patient {label}, diagnosis {ground_truth}.")
 
-                # Second lesion: WDLPS
-                segmentation_uri = scan.resources['NIFTI'].files['segmentation_WDLPS.nii.gz'].external_uri()
-                ground_truth = 1
-
-            elif subject.label == 'GIST-018':
-                print("Patient GIST-018 has two lesions, including both.")
-                image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
-
-                # First lesion
-                segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_0.nii.gz'].external_uri()
+                # Add found sources to data dicitonaries
                 images[label] = image_uri
                 segmentations[label] = segmentation_uri
                 ground_truths[label] = ground_truth
-                if verbose:
-                    print(f"\tIncluding patient {label}, diagnosis 0.")
-
-                # Second lesion
-                segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_1.nii.gz'].external_uri()
-
-            else:
-                image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
-                segmentation_uri = scan.resources['NIFTI'].files['segmentation.nii.gz'].external_uri()
-                if verbose:
-                    print(f"\tIncluding patient {label}, diagnosis {ground_truth}.")
-
-            # Add found sources to data dicitonaries
-            images[label] = image_uri
-            segmentations[label] = segmentation_uri
-            ground_truths[label] = ground_truth
 
     # Convert diagnosis labels to a label CSV file
     df = pd.DataFrame({'Patient': list(ground_truths.keys()),
@@ -330,8 +330,7 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
     experiment.images_train.append(images)
     experiment.segmentations_train.append(segmentations)
     experiment.labels_file_train = label_file
-    experiment.configs.append(config)
-    experiment.predict_labels(label_to_predict)
+    experiment.predict_labels([label_to_predict])
 
     # Run experiment
     if add_evaluation:
