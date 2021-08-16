@@ -23,8 +23,12 @@ from glob import glob
 
 from xnat.exceptions import XNATResponseError
 
+# General settings
+valid_datasets = ['HN', 'Lipo', 'Desmoid', 'GIST', 'Liver', 'CRLM', 'Melanoma']
 
-def download_subject(project, subject, datafolder, session, verbose=False):
+
+def download_subject(project, subject, datafolder, session, verbose=False,
+                     HN_exceptions=False):
     """Download data of a single XNAT subject."""
     # Download all data and keep track of resources
     download_counter = 0
@@ -38,12 +42,13 @@ def download_subject(project, subject, datafolder, session, verbose=False):
         # Specific for STW Strategy BMIA XNAT projects
 
         if experiment.session_type is None:  # some files in project don't have _CT postfix
-            print(f"\tSkipping patient {subject.label}, experiment {experiment.label}: type is not CT but {experiment.session_type}.")
+            print(f"\tSkipping patient {subject.label}, experiment {experiment.label}: type is {experiment.session_type}.")
             continue
 
-        if '_CT' not in experiment.session_type:
-            print(f"\tSkipping patient {subject.label}, experiment {experiment.label}: type is not CT but {experiment.session_type}.")
-            continue
+        if HN_exceptions:
+            if '_CT' not in experiment.session_type:
+                print(f"\tSkipping patient {subject.label}, experiment {experiment.label}: type is not CT but {experiment.session_type}.")
+                continue
 
         for s in experiment.scans:
             scan = experiment.scans[s]
@@ -73,50 +78,52 @@ def download_subject(project, subject, datafolder, session, verbose=False):
         print(f'[WARNING] Skipping subject {subject_name}: no NIFTI resources found.')
         return False
 
-    if resource_labels.count('NIFTI') < 2:
-        print(f'[WARNING] Skipping subject {subject_name}: only one NIFTI resource found, need two (mask and image).')
-        return False
-    elif resource_labels.count('NIFTI') > 2:
-        count = resource_labels.count('NIFTI')
-        print(f'[WARNING] Skipping subject {subject_name}: {str(count)} NIFTI resources found, need two (mask and image).')
-        return False
+    if HN_exceptions:
+        # HN Dataset: check if the patient data we downloaded should be included or not
+        if resource_labels.count('NIFTI') < 2:
+            print(f'[WARNING] Skipping subject {subject_name}: only one NIFTI resource found, need two (mask and image).')
+            return False
+        elif resource_labels.count('NIFTI') > 2:
+            count = resource_labels.count('NIFTI')
+            print(f'[WARNING] Skipping subject {subject_name}: {str(count)} NIFTI resources found, need two (mask and image).')
+            return False
 
-    # Check what the mask and image folders are
-    NIFTI_folders = glob(os.path.join(outdir, '*', 'scans', '*', 'resources', 'NIFTI', 'files'))
-    if 'mask' in glob(os.path.join(NIFTI_folders[0], '*.nii.gz'))[0]:
-        NIFTI_image_folder = NIFTI_folders[1]
-        NIFTI_mask_folder = NIFTI_folders[0]
-    else:
-        NIFTI_image_folder = NIFTI_folders[0]
-        NIFTI_mask_folder = NIFTI_folders[1]
+        # Check what the mask and image folders are
+        NIFTI_folders = glob(os.path.join(outdir, '*', 'scans', '*', 'resources', 'NIFTI', 'files'))
+        if 'mask' in glob(os.path.join(NIFTI_folders[0], '*.nii.gz'))[0]:
+            NIFTI_image_folder = NIFTI_folders[1]
+            NIFTI_mask_folder = NIFTI_folders[0]
+        else:
+            NIFTI_image_folder = NIFTI_folders[0]
+            NIFTI_mask_folder = NIFTI_folders[1]
 
-    NIFTI_files = glob(os.path.join(NIFTI_image_folder, '*'))
-    if len(NIFTI_files) == 0:
-        print(f'[WARNING] Skipping subject {subject_name}: image NIFTI resources is empty.')
-        shutil.rmtree(outdir)
-        return False
+        NIFTI_files = glob(os.path.join(NIFTI_image_folder, '*'))
+        if len(NIFTI_files) == 0:
+            print(f'[WARNING] Skipping subject {subject_name}: image NIFTI resources is empty.')
+            shutil.rmtree(outdir)
+            return False
 
-    NIFTI_files = glob(os.path.join(NIFTI_mask_folder, '*'))
-    if len(NIFTI_files) == 0:
-        print(f'[WARNING] Skipping subject {subject_name}: mask NIFTI resources is empty.')
-        shutil.rmtree(outdir)
-        return False
+        NIFTI_files = glob(os.path.join(NIFTI_mask_folder, '*'))
+        if len(NIFTI_files) == 0:
+            print(f'[WARNING] Skipping subject {subject_name}: mask NIFTI resources is empty.')
+            shutil.rmtree(outdir)
+            return False
 
-    # Patient is included, so cleanup folder structure
-    shutil.move(os.path.join(NIFTI_image_folder, 'image.nii.gz'),
-                os.path.join(outdir, 'image.nii.gz'))
-    shutil.move(os.path.join(NIFTI_mask_folder, 'mask_GTV-1.nii.gz'),
-                os.path.join(outdir, 'mask.nii.gz'))
+        # Patient is included, so cleanup folder structure
+        shutil.move(os.path.join(NIFTI_image_folder, 'image.nii.gz'),
+                    os.path.join(outdir, 'image.nii.gz'))
+        shutil.move(os.path.join(NIFTI_mask_folder, 'mask_GTV-1.nii.gz'),
+                    os.path.join(outdir, 'mask.nii.gz'))
 
-    for folder in glob(os.path.join(outdir, '*', 'scans')):
-        folder = os.path.dirname(folder)
-        shutil.rmtree(folder)
+        for folder in glob(os.path.join(outdir, '*', 'scans')):
+            folder = os.path.dirname(folder)
+            shutil.rmtree(folder)
 
     return True
 
 
 def download_project(project_name, xnat_url, datafolder, nsubjects='all',
-                     verbose=True):
+                     verbose=True, HN_exceptions=False, dataset='all'):
     """Download data of full XNAT project."""
     # Connect to XNAT and retreive project
     with xnat.connect(xnat_url) as session:
@@ -137,10 +144,18 @@ def download_project(project_name, xnat_url, datafolder, nsubjects='all',
         downloaded_subjects_counter = 0
         for s in range(0, subjects_len):
             s = project.subjects[s]
+            if dataset is not 'all':
+                # Check if patient belongs to required dataset
+                subject_dataset = s.fields['dataset']
+                if subject_dataset != dataset:
+                    # This subject belongs to a different dataset than the one requested
+                    continue
+
             print(f'Working on subject {subjects_counter}/{subjects_len}')
             subjects_counter += 1
 
-            success = download_subject(project_name, s, datafolder, session, verbose)
+            success = download_subject(project_name, s, datafolder, session,
+                                       verbose, HN_exceptions)
             if success:
                 downloaded_subjects_counter += 1
 
@@ -172,7 +187,35 @@ def download_HeadAndNeck(datafolder=None, nsubjects='all'):
     xnat_url = 'https://xnat.bmia.nl'
     project_name = 'stwstrategyhn1'
     download_project(project_name, xnat_url, datafolder, nsubjects=nsubjects,
-                     verbose=True)
+                     verbose=True, HN_exceptions=True)
+
+
+def download_WORCDatabase(dataset=None, datafolder=None, nsubjects='all'):
+    """Download a dataset from the WORC Database.
+
+    Download all Nifti images and segmentations from a dataset from the WORC
+    database from https://xnat.bmia.nl/data/projects/worc
+
+    dataset: string, default None
+        If None, download the full XNAT project. If string, download one
+        of the six datasets. Valid values: Lipo, Desmoid, GIST, Liver, CRLM,
+        Melanoma
+    """
+    # Check if dataset is valid
+    if dataset not in valid_datasets:
+        raise KeyError(f"{dataset} is not a valid dataset, should be one of {valid_datasets}.")
+
+    if datafolder is None:
+        # Download data to path in which this script is located + Data
+        cwd = os.getcwd()
+        datafolder = os.path.join(cwd, 'Data')
+        if not os.path.exists(datafolder):
+            os.makedirs(datafolder)
+
+    xnat_url = 'https://xnat.bmia.nl'
+    project_name = 'worc'
+    download_project(project_name, xnat_url, datafolder, nsubjects=nsubjects,
+                     verbose=True, dataset=dataset)
 
 
 if __name__ == '__main__':
