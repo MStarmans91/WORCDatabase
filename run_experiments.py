@@ -47,6 +47,13 @@ def main():
                         help='Verbose')
     args = parser.parse_args()
 
+    # Convert strings to Booleans
+    if args.coarse == 'True':
+        args.coarse = True
+
+    if args.verbose == 'True':
+        args.verbose = True
+
     # Run the experiment
     run_experiment(dataset=args.dataset,
                    coarse=args.coarse,
@@ -321,10 +328,19 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
                 'Normalize': 'True',
             },
             'ImageFeatures': {
-                'image_type': 'MRI'
+                'image_type': 'MR'
             }
         }
         experiment.add_config_overrides(overrides)
+
+    # NOTE: PyRadiomics might throw an error due to slight differences
+    # in metadata of the image and mask. Thus, we assume they
+    # have the same
+    overrides = {
+        'General': {
+            'AssumeSameImageAndMaskMetadata': 'True',
+        }}
+    experiment.add_config_overrides(overrides)
 
     # Set all sources
     experiment.images_train.append(images)
