@@ -54,6 +54,9 @@ def main():
     if args.verbose == 'True':
         args.verbose = True
 
+    if args.eval == 'True':
+        args.eval = True
+
     # Run the experiment
     run_experiment(dataset=args.dataset,
                    coarse=args.coarse,
@@ -231,9 +234,9 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
 
                 elif subject.label == 'GIST-018':
                     print("Patient GIST-018 has two lesions, including both.")
-                    image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
 
                     # First lesion
+                    image_uri = scan.resources['NIFTI'].files['image_lesion_0.nii.gz'].external_uri()
                     segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_0.nii.gz'].external_uri()
                     images[label] = image_uri
                     segmentations[label] = segmentation_uri
@@ -242,6 +245,7 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
                         print(f"\tIncluding patient {label}, diagnosis 0.")
 
                     # Second lesion
+                    image_uri = scan.resources['NIFTI'].files['image_lesion_1.nii.gz'].external_uri()
                     segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_1.nii.gz'].external_uri()
 
                 else:

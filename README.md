@@ -3,12 +3,12 @@ This repository contains scripts to download six public datasets
 and reproduce radiomics experiments on these six datasets and two other
 public datasets. The six public datasets are described in the following paper:
 
-``Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies, In Preparation``
+``Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies, Submitted``
 
 The data used for six of the datasets can be found at https://xnat.bmia.nl/data/projects/worc.
 The experiments are described in the following paper:
 
-``Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications, In Preparation``
+``Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications, Submitted``
 
 ## License
 When using parts of this code or the above datasets, please cite the two
@@ -25,7 +25,7 @@ For the DOI, visit [![][DOI]][DOI-lnk].
 The experiments only require the WORC Python package to be installed,
 which can be done using pip. In the paper, version 3.4.5 was used:
 
-    pip install "WORC==3.4.5"
+    pip install "WORC==3.5.0"
 
 The requirements for WORC itself can be found at https://github.com/MStarmans91/WORC.
 
@@ -56,7 +56,8 @@ To reproduce eight experiments presented in the WORC paper,
 i.e., those on the above mentioned eight datasets, simply import
 and run the ``run_experiment`` function from the ``run_experiments.py`` script.
 The *dataset* argument can be used to switch between the eight datasets. See
-the docstring of the function for further documentation.
+the docstring of the function  or the *==help* option when running the
+function on the command line for further documentation.
 
 For the six public datasets as published in the Data in Brief paper, the data
 is directly fed from XNAT into WORC. For the two previously publicly published
@@ -82,8 +83,13 @@ that can be fed into WORC, which can be found in the *helpers* folder:
 Documentation for these functions can be found in the respective files. Note
 that you first have to download the features from http://dx.doi.org/10.17632/rssf5nxxby.3.
 
+Afterwards, we recommend to use the ``SimpleWORC`` module as explained in
+the WORC Tutorial (https://github.com/MStarmans91/WORCTutorial) to run the
+actual WORC experiment.
+
 ### Head and neck dataset
-For the head and neck dataset, the data can be found at https://xnat.bmia.nl/data/projects/stwstrategyhn1. This data can be directly fed into WORC. However, in the
+For the head and neck dataset, the data can be found at https://xnat.bmia.nl/data/projects/stwstrategyhn1.
+This data can be directly fed into WORC. However, in the
 experiment conducted in the paper, we predict the T-stage based on GTV-1 segmentations,
 which are both missing for some of the patients. Hence, before running the experiment,
 we first check for which patients these are available and only include those.
