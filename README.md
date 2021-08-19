@@ -18,8 +18,8 @@ above mentioned papers. Feel free to also cite the code from this repository:
 
 For the DOI, visit [![][DOI]][DOI-lnk].
 
-[DOI]: https://zenodo.org/badge/388076660.svg
-[DOI-lnk]: https://zenodo.org/badge/latestdoi/388076660
+[DOI]: https://zenodo.org/badge/DOI/10.5281/zenodo.5119040.svg
+[DOI-lnk]: https://doi.org/10.5281/zenodo.5119040
 
 ## Installation
 The experiments only require the WORC Python package to be installed,
