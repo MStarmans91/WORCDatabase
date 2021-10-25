@@ -3,12 +3,12 @@ This repository contains scripts to download six public datasets
 and reproduce radiomics experiments on these six datasets and two other
 public datasets. The six public datasets are described in the following paper:
 
-``Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies, Submitted``
+``Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies, Submitted, Preprint available at https://doi.org/10.1101/2021.08.19.21262238.``
 
 The data used for six of the datasets can be found at https://xnat.bmia.nl/data/projects/worc.
 The experiments are described in the following paper:
 
-``Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications, Submitted``
+``Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications, Submitted, Preprint available at https://arxiv.org/abs/2108.08618.``
 
 ## License
 When using parts of this code or the above datasets, please cite the two
