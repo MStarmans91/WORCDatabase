@@ -55,6 +55,9 @@ def main():
     parser.add_argument('-RS_iterations', '--RS_iterations', metavar='RS_iterations',
                         dest='RS_iterations', type=str, required=False,
                         help='Number of random search iterations, if random search is used.')
+    parser.add_argument('-radiomics_sota', '--radiomics_sota', metavar='radiomics_sota',
+                        dest='radiomics_sota', type=str, required=False,
+                        help='Use a radiomics SOTA: only LASSO + logistic regression.')
     parser.add_argument('-verbose', '--verbose', metavar='verbose', dest='verbose',
                         type=str, required=False,
                         help='Verbose')
@@ -81,14 +84,16 @@ def main():
         smac_budget=args.smac_budget,
         ensemble_method=args.ensemble_method,
         ensemble_size=args.ensemble_size,
-        RS_iterations=args.RS_iterations
+        RS_iterations=args.RS_iterations,
+        radiomics_sota=args.radiomics_sota
         )
 
 
 def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
                           add_evaluation=True, verbose=True, use_smac=False,
                           smac_budget='low', ensemble_method='top_N',
-                          ensemble_size=100, RS_iterations=1000):
+                          ensemble_size=100, RS_iterations=1000,
+                          radiomics_sota=False):
     """Run a radiomics experiment using WORC on one of eight public datasets.
 
     Parameters
@@ -150,14 +155,20 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
         }}
     experiment.add_config_overrides(overrides)
 
+    # We fix the random seed of the train-test cross-validation splits to
+    # facilitate reproducbility
+    overrides = {
+        'CrossValidation': {
+            'fixed_seed': 'True'
+        }}
+    experiment.add_config_overrides(overrides)
+
     # Reduce the number of train-test cross-validation iterations to
     # reduce the computational burden for these comparison experiments
     overrides = {
-        'CrossValidation':
-            {
-                'N_iterations': '20',
-            }
-        }
+        'CrossValidation':{
+            'N_iterations': '20',
+        }}
     experiment.add_config_overrides(overrides)
 
     # AutoML Parameters
@@ -169,7 +180,7 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
                     {
                         'use':  'True',
                         # NOTE: if you have more cores available, change this to speed up the optimization
-                        'n_smac_cores': '120',
+                        'n_smac_cores': '60',
                         'budget_type': 'time',
                         'budget': '36',
                         'init_method': 'random',
@@ -182,7 +193,7 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
                     {
                         'use':  'True',
                         # NOTE: if you have more cores available, change this to speed up the optimization
-                        'n_smac_cores': '120',
+                        'n_smac_cores': '90',
                         'budget_type': 'time',
                         'budget': '355',
                         'init_method': 'random',
@@ -204,6 +215,45 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
                 }
         else:
             raise ValueError(f'Budget for SMAC should be low, medium, or high: received {smac_budget}.')
+        experiment.add_config_overrides(overrides)
+
+    # Use radiomics SOTA: PyRadiomics features, LASSO, LR, no ensembling
+    if radiomics_sota:
+        overrides = {
+            # One feature extraction toolbox: PyRadiomics
+            'General':
+                {
+                    'FeatureCalculators': '[pyradiomics/Pyradiomics:1.0]'
+                },
+            # # One imputation strategy: median
+            'Imputation':
+                {
+                    'strategy': 'median'
+                },
+            # One feature selection method: LASSO
+            'Featsel':
+                {
+                    'Variance': '0.0',
+                    'GroupwiseSearch': 'False',
+                    'SelectFromModel': '1.0',
+                    'SelectFromModel_estimator': 'Lasso',
+                    'UsePCA': '0.0',
+                    'StatisticalTestUse': '0.0',
+                    'ReliefUse': '0.0'
+                },
+            # No resampling
+            'Resampling':
+                {'Use': '0.00'},
+            # One classification method: logistic regression
+            'Classification':
+                {'classifiers': 'LR'},
+            # No ensembling
+            'Ensemble':
+                {
+                    'Method': 'top_N',
+                    'Size': '1'
+                }
+            }
         experiment.add_config_overrides(overrides)
 
     # Randomized search overrides
@@ -241,7 +291,7 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
 
     # WORC outputs multiple evaluation tools. Here, we only
     # check the performance metrics to see if the experiment finished succesfully
-    outputfolder = os.path.join(fastr.config.mounts['output'], name)
+    outputfolder = os.path.join(fastr.config.mounts['output'], f'WORC_{name}')
     performance_file = os.path.join(outputfolder, 'performance_all_0.json')
     if not os.path.exists(performance_file):
         raise ValueError('No performance file found: your network has failed.')

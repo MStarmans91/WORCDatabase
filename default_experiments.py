@@ -51,15 +51,18 @@ def main():
     # Convert strings to Booleans
     if args.coarse == 'True':
         args.coarse = True
+    else:
+        args.coarse = False
 
     if args.verbose == 'True':
         args.verbose = True
+    else:
+        args.verbose = False
 
     if args.eval == 'True':
         args.eval = True
-
-    if args.use_smac == 'True':
-        args.use_smac = True
+    else:
+        args.eval = False
 
     # Run the experiment
     run_experiment(
@@ -272,8 +275,7 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
     return images, segmentations, csv_label_file
 
 
-def run_experiment(dataset='Lipo', use_smac=False, ensembling=None,
-                   coarse=False, name=None,
+def run_experiment(dataset='Lipo', coarse=False, name=None,
                    add_evaluation=True, verbose=True):
     """Run a radiomics experiment using WORC on one of eight public datasets.
 
@@ -356,6 +358,7 @@ def run_experiment(dataset='Lipo', use_smac=False, ensembling=None,
     if add_evaluation:
         experiment.add_evaluation()
 
+    experiment.set_multicore_execution()
     experiment.execute()
 
     # WORC outputs multiple evaluation tools. Here, we only
@@ -363,7 +366,7 @@ def run_experiment(dataset='Lipo', use_smac=False, ensembling=None,
     outputfolder = os.path.join(fastr.config.mounts['output'], name)
     performance_file = os.path.join(outputfolder, 'performance_all_0.json')
     if not os.path.exists(performance_file):
-        raise ValueError('No performance file found: your network has failed.')
+        raise ValueError(f'No performance file {performance_file} found: your network has failed.')
 
     with open(performance_file, 'r') as fp:
         performance = json.load(fp)
