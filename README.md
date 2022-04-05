@@ -3,12 +3,13 @@ This repository contains scripts to download six public datasets
 and reproduce radiomics experiments on these six datasets and two other
 public datasets. The six public datasets are described in the following paper:
 
-``Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies, In Preparation``
+``Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies. Submitted, preprint available from https://doi.org/10.1101/2021.08.19.21262238``
 
 The data used for six of the datasets can be found at https://xnat.bmia.nl/data/projects/worc.
+
 The experiments are described in the following paper:
 
-``Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications, In Preparation``
+``Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications. Submitted, preprint available from https://arxiv.org/abs/2108.08618.``
 
 ## License
 When using parts of this code or the above datasets, please cite the two
@@ -23,9 +24,9 @@ For the DOI, visit [![][DOI]][DOI-lnk].
 
 ## Installation
 The experiments only require the WORC Python package to be installed,
-which can be done using pip. In the paper, version 3.4.5 was used:
+which can be done using pip. In the paper, version 3.6.0 was used:
 
-    pip install "WORC==3.4.5"
+    pip install "WORC==3.6.0"
 
 The requirements for WORC itself can be found at https://github.com/MStarmans91/WORC.
 
@@ -108,6 +109,8 @@ the ``automlcomparison.py`` script and manipulating the following arguments:
   size if the top_N method is used.
 - The ``RS_iterations`` argument can be changed to determine the number
   of random search iterations if SMAC is not used.
+- The ``radiomics_sota`` argument can be set to ``True`` to use the radiomics
+  baseline (PyRadiomics + LASSO + Logistic Regression)
 
 ## Known Issues
 See the WORC FAQ: https://worc.readthedocs.io/en/latest/static/faq.html
