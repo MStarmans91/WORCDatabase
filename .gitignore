@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Files generated when running a WORC experiment
+pinfo*.csv

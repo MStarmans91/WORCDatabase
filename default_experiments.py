@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016-2021 Biomedical Imaging Group Rotterdam, Departments of
+# Copyright 2016-2022 Biomedical Imaging Group Rotterdam, Departments of
 # Medical Informatics and Radiology, Erasmus MC, Rotterdam, The Netherlands
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@ import pandas as pd
 import os
 import fastr
 import argparse
+import json
 
 # General settings
 valid_datasets = ['HN', 'Lipo', 'Desmoid', 'GIST', 'Liver', 'CRLM', 'Melanoma']
@@ -50,25 +51,32 @@ def main():
     # Convert strings to Booleans
     if args.coarse == 'True':
         args.coarse = True
+    else:
+        args.coarse = False
 
     if args.verbose == 'True':
         args.verbose = True
+    else:
+        args.verbose = False
 
     if args.eval == 'True':
         args.eval = True
+    else:
+        args.eval = False
 
     # Run the experiment
-    run_experiment(dataset=args.dataset,
-                   coarse=args.coarse,
-                   name=args.name,
-                   add_evaluation=args.eval,
-                   verbose=args.verbose)
+    run_experiment(
+        dataset=args.dataset,
+        coarse=args.coarse,
+        name=args.name,
+        add_evaluation=args.eval,
+        verbose=args.verbose)
 
 
 def get_source_data_HN(verbose=True, csv_label_file=None):
-    """
-    Get the source data for WORC experiment on the Head and Neck Cancer
-    dataset from https://xnat.bmia.nl/data/projects/stwstrategyhn1
+    """Get the source data for WORC experiment on the Head and Neck Cancer.
+
+    Dataset from https://xnat.bmia.nl/data/projects/stwstrategyhn1
     """
     # Some settings
     xnat_url = 'https://xnat.bmia.nl'
@@ -161,9 +169,9 @@ def get_source_data_HN(verbose=True, csv_label_file=None):
 
 
 def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
-    """
-    Get the source data for a WORC experiment using the WORC database
-    dataset from https://xnat.bmia.nl/data/projects/worc
+    """Get the source data for a WORC experiment using the WORC database.
+
+    Dataset from https://xnat.bmia.nl/data/projects/worc
     """
     # Some settings
     xnat_url = 'https://xnat.bmia.nl'
@@ -293,6 +301,8 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
     if dataset not in valid_datasets:
         raise KeyError(f"{dataset} is not a valid dataset, should be one of {valid_datasets}.")
 
+    # To Do: check if the given ensembling method is valid
+
     print(f"Running experiment for dataset {dataset}.")
 
     # Create an experiment for binary classification
@@ -314,35 +324,27 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
 
     # Check modality
     if dataset in CT_datasets:
-        print(f"Dataset {dataset} is CT, disabling image normalization.")
-        overrides = {
-            'Preprocessing': {
-                'Normalize': 'False',
-            },
-            'ImageFeatures': {
-                'image_type': 'CT'
-            }
-        }
-        experiment.add_config_overrides(overrides)
+        print(f"Dataset {dataset} is CT, add for fingerprinting.")
+        experiment.set_image_types(['CT'])
 
     elif dataset in MRI_datasets:
         print(f"Dataset {dataset} is MRI, enabling image normalization.")
-        overrides = {
-            'Preprocessing': {
-                'Normalize': 'True',
-            },
-            'ImageFeatures': {
-                'image_type': 'MR'
-            }
-        }
-        experiment.add_config_overrides(overrides)
+        experiment.set_image_types(['MRI'])
 
     # NOTE: PyRadiomics might throw an error due to slight differences
     # in metadata of the image and mask. Thus, we assume they
     # have the same
     overrides = {
         'General': {
-            'AssumeSameImageAndMaskMetadata': 'True',
+            'AssumeSameImageAndMaskMetadata': 'True'
+        }}
+    experiment.add_config_overrides(overrides)
+
+    # We fix the random seed of the train-test cross-validation splits to
+    # facilitate reproducbility
+    overrides = {
+        'CrossValidation': {
+            'fixed_seed': 'True'
         }}
     experiment.add_config_overrides(overrides)
 
@@ -355,10 +357,25 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
     # Run experiment
     if add_evaluation:
         experiment.add_evaluation()
+
+    experiment.set_multicore_execution()
     experiment.execute()
 
-    # Check the output performance, if the experiment finished succesfully
+    # WORC outputs multiple evaluation tools. Here, we only
+    # check the performance metrics to see if the experiment finished succesfully
     outputfolder = os.path.join(fastr.config.mounts['output'], name)
+    performance_file = os.path.join(outputfolder, 'performance_all_0.json')
+    if not os.path.exists(performance_file):
+        raise ValueError(f'No performance file {performance_file} found: your network has failed.')
+
+    with open(performance_file, 'r') as fp:
+        performance = json.load(fp)
+
+    # Print the output performance
+    print("\n Performance:")
+    stats = performance['Statistics']
+    for k, v in stats.items():
+        print(f"\t {k} {v}.")
 
 
 if __name__ == '__main__':

@@ -3,12 +3,12 @@ This repository contains scripts to download six public datasets
 and reproduce radiomics experiments on these six datasets and two other
 public datasets. The six public datasets are described in the following paper:
 
-``Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies, Submitted, Preprint available at https://doi.org/10.1101/2021.08.19.21262238.``
+``Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies. Submitted, preprint available from https://doi.org/10.1101/2021.08.19.21262238``
 
 The data used for six of the datasets can be found at https://xnat.bmia.nl/data/projects/worc.
-The experiments are described in the following paper:
 
-``Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications, Submitted, Preprint available at https://arxiv.org/abs/2108.08618.``
+The experiments are described in the following paper:
+``Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications. Submitted, preprint available from https://arxiv.org/abs/2108.08618.``
 
 ## License
 When using parts of this code or the above datasets, please cite the two
@@ -23,9 +23,9 @@ For the DOI, visit [![][DOI]][DOI-lnk].
 
 ## Installation
 The experiments only require the WORC Python package to be installed,
-which can be done using pip. In the paper, version 3.4.5 was used:
+which can be done using pip. In the paper, version 3.6.0 was used:
 
-    pip install "WORC==3.5.0"
+  pip install "WORC==3.6.0"
 
 The requirements for WORC itself can be found at https://github.com/MStarmans91/WORC.
 
@@ -52,9 +52,9 @@ Documentation for these functions can be found in the docstrings of the
 functions.
 
 ## Usage: experiment reproduction
-To reproduce eight experiments presented in the WORC paper,
-i.e., those on the above mentioned eight datasets, simply import
-and run the ``run_experiment`` function from the ``run_experiments.py`` script.
+To reproduce the eight default experiments presented in the WORC paper,
+i.e., those with the default WORC settings on the above mentioned eight datasets, simply import
+and run the ``run_experiment`` function from the ``default_experiments.py`` script.
 The *dataset* argument can be used to switch between the eight datasets. See
 the docstring of the function  or the *==help* option when running the
 function on the command line for further documentation.
@@ -64,7 +64,7 @@ is directly fed from XNAT into WORC. For the two previously publicly published
 datasets used in the WORC MEDIA paper, some additional steps are performed.
 
 ### Glioma dataset
-For theg glioma dataset, radiomics features are supplied instead of raw
+For the glioma dataset, radiomics features are supplied instead of raw
 imaging data. As these have been created using Python2 and a specific version
 of pandas, these files cannot directly be fed into WORC. Therefore,
 we have created two scripts to convert the feature files to a format
@@ -95,6 +95,27 @@ which are both missing for some of the patients. Hence, before running the exper
 we first check for which patients these are available and only include those.
 This is automatically done in the ``run_experiment`` function when using the
 head and neck dataset.
+
+### AutoML comparison experiments
+By default, WORC optimizes the radiomics workflow construction using a
+random search of 1000 iterations and creates an ensemble of the top 50
+workflows. In the WORC paper, this was compared to various other setttings
+for the number of random search iterations, top N for the ensembling,
+other ensembling methods, and Bayesian optimization using SMAC. These
+can also be performed by using ``run_automl_experiment`` function from
+the ``automlcomparison.py`` script and manipulating the following arguments:
+
+- The ``use_smac`` argument can be set to ``True`` to use SMAC.
+- The ``smac_budget`` argument can be set to 'low', 'medium', or 'high' to
+  change the time budget of SMAC.
+- The ``ensembling_method`` argument can be changed to use the other ensembling
+  methods, see https://worc.readthedocs.io/en/latest/static/configuration.html#ensemble.
+- The ``ensembling_size`` argument can be changed to determine the ensemble
+  size if the top_N method is used.
+- The ``RS_iterations`` argument can be changed to determine the number
+  of random search iterations if SMAC is not used.
+- The ``radiomics_sota`` argument can be set to ``True`` to use the radiomics
+  baseline (PyRadiomics + LASSO + Logistic Regression)
 
 ## Known Issues
 See the WORC FAQ: https://worc.readthedocs.io/en/latest/static/faq.html
