@@ -119,3 +119,12 @@ the ``automlcomparison.py`` script and manipulating the following arguments:
 
 ## Known Issues
 See the WORC FAQ: https://worc.readthedocs.io/en/latest/static/faq.html
+
+## Acknowledgements
+The authors thank Laurens Groenendijk for his assistance in processing the data and in the
+anonimization procedures. Martijn P. A. Starmans acknowledges funding from the research
+program STRaTeGy with project numbers 14929 and 14930, which is (partly) financed by the
+Netherlands Organization for Scientific Research (NWO). Part of this study was financed by
+the Stichting Coolsingel (reference number 567), a Dutch non-profit foundation. This study
+is supported by EuCanShare and EuCanImage (European Union’s Horizon 2020 research and innovation programme
+under grant agreement Nr. 825903 and Nr. 952103, respectively).
