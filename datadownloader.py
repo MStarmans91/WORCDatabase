@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016-2021 Biomedical Imaging Group Rotterdam, Departments of
+# Copyright 2016-2025 Biomedical Imaging Group Rotterdam, Departments of
 # Medical Informatics and Radiology, Erasmus MC, Rotterdam, The Netherlands
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -151,7 +151,7 @@ def download_WORCDatabase(dataset=None, datafolder=None, nsubjects='all'):
     """Download a dataset from the WORC Database.
 
     Download all Nifti images and segmentations from a dataset from the WORC
-    database from https://xnat.bmia.nl/data/projects/worc
+    database from https://xnat.health-ri.nl/data/projects/worc
 
     dataset: string, default None
         If None, download the full XNAT project. If string, download one
@@ -169,7 +169,8 @@ def download_WORCDatabase(dataset=None, datafolder=None, nsubjects='all'):
         if not os.path.exists(datafolder):
             os.makedirs(datafolder)
 
-    xnat_url = 'https://xnat.bmia.nl'
+    # xnat_url = 'https://xnat.health-ri.nl'
+    xnat_url = 'https://xnat-covid.research.erasmusmc.nl'
     project_name = 'worc'
     download_project(project_name, xnat_url, datafolder, nsubjects=nsubjects,
                      verbose=True, dataset=dataset)

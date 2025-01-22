@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016-2022 Biomedical Imaging Group Rotterdam, Departments of
+# Copyright 2016-2024 Biomedical Imaging Group Rotterdam, Departments of
 # Medical Informatics and Radiology, Erasmus MC, Rotterdam, The Netherlands
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -174,7 +174,8 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
     # AutoML Parameters
     if use_smac:
         # Use Baysian optimization through use_smac
-        if smac_budget == 'low':
+        if smac_budget == 'NRS1000':
+            experiment._worc.fastr_memory_parameters['Classification'] = '6G'
             overrides = {
                 'SMAC':
                     {
@@ -187,7 +188,8 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
                         'init_budget': '1',
                     },
                 }
-        elif smac_budget == 'medium':
+        elif smac_budget == 'NRS10000':
+            experiment._worc.fastr_memory_parameters['Classification'] = '6G'
             overrides = {
                 'SMAC':
                     {
@@ -200,7 +202,22 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
                         'init_budget': '5',
                     },
                 }
-        elif smac_budget == 'high':
+        elif smac_budget == 'NRS25000':
+            experiment._worc.fastr_memory_parameters['Classification'] = '12G'
+            overrides = {
+                'SMAC':
+                    {
+                        'use':  'True',
+                        # NOTE: if you have more cores available, change this to speed up the optimization
+                        'n_smac_cores': '120',
+                        'budget_type': 'time',
+                        'budget': '1842',
+                        'init_method': 'random',
+                        'init_budget': '20',
+                    },
+                }
+        elif smac_budget == 'NRS50000':
+            experiment._worc.fastr_memory_parameters['Classification'] = '12G'
             overrides = {
                 'SMAC':
                     {
@@ -215,6 +232,7 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
                 }
         else:
             raise ValueError(f'Budget for SMAC should be low, medium, or high: received {smac_budget}.')
+        
         experiment.add_config_overrides(overrides)
 
     # Use radiomics SOTA: PyRadiomics features, LASSO, LR, no ensembling

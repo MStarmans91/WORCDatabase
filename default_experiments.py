@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016-2022 Biomedical Imaging Group Rotterdam, Departments of
+# Copyright 2016-2025 Biomedical Imaging Group Rotterdam, Departments of
 # Medical Informatics and Radiology, Erasmus MC, Rotterdam, The Netherlands
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,7 @@ import json
 valid_datasets = ['HN', 'Lipo', 'Desmoid', 'GIST', 'Liver', 'CRLM', 'Melanoma']
 CT_datasets = ['HN', 'GIST', 'CRLM', 'Melanoma']
 MRI_datasets = ['Lipo', 'Desmoid', 'Liver']
+this_directory = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
@@ -76,10 +77,13 @@ def main():
 def get_source_data_HN(verbose=True, csv_label_file=None):
     """Get the source data for WORC experiment on the Head and Neck Cancer.
 
-    Dataset from https://xnat.bmia.nl/data/projects/stwstrategyhn1
+    Dataset from https://xnat.health-ri.nl/data/projects/stwstrategyhn1
+
+    If no csv_label_file is provided, the script will get the data from the
+    XNAT and create one.
     """
     # Some settings
-    xnat_url = 'https://xnat.bmia.nl'
+    xnat_url = 'https://xnat.health-ri.nl'
     project_name = 'stwstrategyhn1'
     this_directory = os.path.dirname(os.path.abspath(__file__))
     if csv_label_file is None:
@@ -171,12 +175,14 @@ def get_source_data_HN(verbose=True, csv_label_file=None):
 def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
     """Get the source data for a WORC experiment using the WORC database.
 
-    Dataset from https://xnat.bmia.nl/data/projects/worc
+    Dataset from https://xnat.health-ri.nl/data/projects/worc
+    
+    If no csv_label_file is provided, the script will get the data from the
+    XNAT and create one.
     """
     # Some settings
-    xnat_url = 'https://xnat.bmia.nl'
+    xnat_url = 'https://xnat.health-ri.nl'
     project_name = 'worc'
-    this_directory = os.path.dirname(os.path.abspath(__file__))
     if csv_label_file is None:
         csv_label_file = os.path.join(this_directory, f'pinfo_{dataset}.csv')
 
@@ -191,6 +197,7 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
         for subject_name in project.subjects:
             subject = project.subjects[subject_name]
             label = subject.label
+            
             subject_dataset = subject.fields['dataset']
             if subject_dataset != dataset:
                 # This subject belongs to a different dataset than the one requested
@@ -257,6 +264,7 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
                     segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_1.nii.gz'].external_uri()
 
                 else:
+                    print(label)
                     image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
                     segmentation_uri = scan.resources['NIFTI'].files['segmentation.nii.gz'].external_uri()
                     if verbose:
@@ -347,7 +355,14 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
             'fixed_seed': 'True'
         }}
     experiment.add_config_overrides(overrides)
-
+    
+    # Alternatively, we could have used a csv with pre-defined train-test cross-validation splits,
+    # which correspond to the same setup as the above fixed seed.
+    # NOTE: if you want to compare performance of another method with WORC, we strongly recommend to
+    # use the cross-validation splits from these files so you have the same evaluation setup
+    
+    experiment.set_fixed_splits(os.path.join(this_directory, 'crossvalidationsplits', f'crossvalidationsplits_{dataset}.csv'))
+    
     # Set all sources
     experiment.images_train.append(images)
     experiment.segmentations_train.append(segmentations)
@@ -358,12 +373,11 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
     if add_evaluation:
         experiment.add_evaluation()
 
-    experiment.set_multicore_execution()
     experiment.execute()
 
     # WORC outputs multiple evaluation tools. Here, we only
     # check the performance metrics to see if the experiment finished succesfully
-    outputfolder = os.path.join(fastr.config.mounts['output'], name)
+    outputfolder = os.path.join(fastr.config.mounts['output'], f"WORC_{name}")
     performance_file = os.path.join(outputfolder, 'performance_all_0.json')
     if not os.path.exists(performance_file):
         raise ValueError(f'No performance file {performance_file} found: your network has failed.')

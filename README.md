@@ -5,7 +5,7 @@ public datasets. The six public datasets are described in the following paper:
 
 ``Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies. Submitted, preprint available from https://doi.org/10.1101/2021.08.19.21262238``
 
-The data used for six of the datasets can be found at https://xnat.bmia.nl/data/projects/worc.
+The data used for six of the datasets can be found at https://xnat.health-ri.nl/data/projects/worc.
 
 The experiments are described in the following paper:
 ``Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications. Submitted, preprint available from https://arxiv.org/abs/2108.08618.``
@@ -23,16 +23,16 @@ For the DOI, visit [![][DOI]][DOI-lnk].
 
 ## Installation
 The experiments only require the WORC Python package to be installed,
-which can be done using pip. In the paper, version 3.6.0 was used:
+which can be done using pip. In the paper, version 3.6.3 was used:
 
-  pip install "WORC==3.6.0"
+  pip install "WORC==3.6.3"
 
 The requirements for WORC itself can be found at https://github.com/MStarmans91/WORC.
 
 ## Usage: download data
 The six public datasets as published in the Data in Brief paper can be
 downloaded using the provided ``datadownloader.py`` script. These are
-downloaded from the XNAT repository at https://xnat.bmia.nl/data/projects/worc.
+downloaded from the XNAT repository at https://xnat.health-ri.nl/data/projects/worc.
 Simply import one of the following functions from the script and run it:
 
 1. ``download_Lipo``
@@ -50,6 +50,10 @@ published datasets used in the WORC MEDIA paper:
 
 Documentation for these functions can be found in the docstrings of the
 functions.
+
+## Usage: compare results to WORC algorithm
+In the files in "crossvalidationsplits" folder, you will find the 100x random-split train-test cross-validation setup
+used in the experiments of the original WORC paper mentioned above. If you want to compare performance of another method with WORC, we strongly recommend to use the cross-validation splits from these files so you have the exact same evaluation setup.
 
 ## Usage: experiment reproduction
 To reproduce the eight default experiments presented in the WORC paper,
@@ -88,7 +92,7 @@ the WORC Tutorial (https://github.com/MStarmans91/WORCTutorial) to run the
 actual WORC experiment.
 
 ### Head and neck dataset
-For the head and neck dataset, the data can be found at https://xnat.bmia.nl/data/projects/stwstrategyhn1.
+For the head and neck dataset, the data can be found at https://xnat.health-ri.nl/data/projects/stwstrategyhn1.
 This data can be directly fed into WORC. However, in the
 experiment conducted in the paper, we predict the T-stage based on GTV-1 segmentations,
 which are both missing for some of the patients. Hence, before running the experiment,
@@ -119,3 +123,12 @@ the ``automlcomparison.py`` script and manipulating the following arguments:
 
 ## Known Issues
 See the WORC FAQ: https://worc.readthedocs.io/en/latest/static/faq.html
+
+## Acknowledgements
+The authors thank Laurens Groenendijk for his assistance in processing the data and in the
+anonimization procedures. Martijn P. A. Starmans acknowledges funding from the research
+program STRaTeGy with project numbers 14929 and 14930, which is (partly) financed by the
+Netherlands Organization for Scientific Research (NWO). Part of this study was financed by
+the Stichting Coolsingel (reference number 567), a Dutch non-profit foundation. This study
+is supported by EuCanShare and EuCanImage (European Union’s Horizon 2020 research and innovation programme
+under grant agreement Nr. 825903 and Nr. 952103, respectively).
