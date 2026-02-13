@@ -156,7 +156,10 @@ def run_automl_experiment(dataset='Lipo', coarse=False, name=None,
     experiment.add_config_overrides(overrides)
 
     # We fix the random seed of the train-test cross-validation splits to
-    # facilitate reproducbility
+    # facilitate reproducibility. Alternatively, you can use the fixed splits
+    # provided by us in CSV format, which correspond with exactly the same splits:
+    # https://github.com/MStarmans91/WORCDatabase/tree/main/crossvalidationsplits.
+    # These can be provided to WORC with the expertiment.set_fixed_splits function.
     overrides = {
         'CrossValidation': {
             'fixed_seed': 'True'

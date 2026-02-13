@@ -23,7 +23,7 @@ For the DOI, visit [![][DOI]][DOI-lnk].
 
 ## Installation
 The experiments only require the WORC Python package to be installed,
-which can be done using pip. In the paper, version 3.6.3 was used:
+which can be done using pip. In the original WORC paper, version 3.6.3 was used:
 
   pip install "WORC==3.6.3"
 
@@ -51,9 +51,21 @@ published datasets used in the WORC MEDIA paper:
 Documentation for these functions can be found in the docstrings of the
 functions.
 
+The features used in WORC are stored in CSV format both on the XNAT, and in this 
+Github repository.
+
 ## Usage: compare results to WORC algorithm
 In the files in "crossvalidationsplits" folder, you will find the 100x random-split train-test cross-validation setup
-used in the experiments of the original WORC paper mentioned above. If you want to compare performance of another method with WORC, we strongly recommend to use the cross-validation splits from these files so you have the exact same evaluation setup.
+used in the experiments of the original WORC paper mentioned above. If you want to compare performance of another method with WORC, we **very strongly** recommend to use the cross-validation splits from these files so you have the exact same evaluation setup.
+
+For each dataset, a file called ``crossvalidationsplits_[DATASETNAME].csv`` is provided.
+For each cross-validation iteration, a column for training and a column for testing is provided,
+including the anonymized identities of each patient included in either the train or test
+set (e.g., ``0_train, 0_test``).  These files are also stored on the Health-RI XNAT,
+see https://xnat.health-ri.nl/data/projects/worc/resources.
+
+## Usage: radiomics features
+For each image and lesion segmentation, a set of 546 radiomics features were extracted using WORC, which internally uses the PyRadiomics (71 features) and PREDICT (493 features) toolboxes. For each dataset, a file called ``WORCDatabase_[DATASETNAME]\_features\_[WORC\_Version].csv`` is provided in the ``features`` folder. For each dataset, each row represents a different image and lesion, with each column providing one of the 546 radiomics features. The final column contains the subject name and associated lesion (e.g. ``[DATASETNAME]_[SUBJECTID]_[LESIONID]``). The first row contains the header with the feature name, see for details the WORC paper and documentation. The WORC software version is added for versioning to support future updates when needed. These files re also stored on the Health-RI XNAT, see https://xnat.health-ri.nl/data/projects/worc/resources.
 
 ## Usage: experiment reproduction
 To reproduce the eight default experiments presented in the WORC paper,
@@ -65,7 +77,7 @@ function on the command line for further documentation.
 
 For the six public datasets as published in the Data in Brief paper, the data
 is directly fed from XNAT into WORC. For the two previously publicly published
-datasets used in the WORC MEDIA paper, some additional steps are performed.
+datasets used in the WORC paper, some additional steps are performed, see below.
 
 ### Glioma dataset
 For the glioma dataset, radiomics features are supplied instead of raw
@@ -120,6 +132,10 @@ the ``automlcomparison.py`` script and manipulating the following arguments:
   of random search iterations if SMAC is not used.
 - The ``radiomics_sota`` argument can be set to ``True`` to use the radiomics
   baseline (PyRadiomics + LASSO + Logistic Regression)
+
+### Regression testing: past performance
+To support regression testing, the standardized performance evaluation files from WORC
+are provided in the ``pastperformances`` folder in files called ``WORCDatabase_performance_[DATASETNAME]_[WORC\_Version].sjon``. Among others, these include several performance metrics in each of the above mentioned 100x random-split cross-validation iterations, and their mean and 95\% confidence intervals as reported in the original radiomics study. More details are given in the WORC documentation. The WORC software version is added for versioning to support regression testing int the future. 
 
 ## Known Issues
 See the WORC FAQ: https://worc.readthedocs.io/en/latest/static/faq.html

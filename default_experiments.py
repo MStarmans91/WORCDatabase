@@ -97,8 +97,7 @@ def get_source_data_HN(verbose=True, csv_label_file=None):
         images = dict()
         segmentations = dict()
         tstages = dict()
-        for subject_name in project.subjects:
-            subject = project.subjects[subject_name]
+        for subject in project.subjects:
             has_GTV1 = False
             has_image_Nifti = False
 
@@ -194,8 +193,7 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
         images = dict()
         segmentations = dict()
         ground_truths = dict()
-        for subject_name in project.subjects:
-            subject = project.subjects[subject_name]
+        for subject in project.subjects:
             label = subject.label
             
             subject_dataset = subject.fields['dataset']
@@ -211,23 +209,26 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
             scan = experiment.scans[0]
 
             if dataset in ['Melanoma', 'CRLM']:
+                label_id = 1
                 # Multiple lesions per patient, thus loop over segmentations
                 image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
-                for file_name in scan.resources['NIFTI'].files:
+                for scan_resouce_file in scan.resources['NIFTI'].files:
                     # Check if file is an image or segmentation
-                    if 'segmentation' in file_name:
+                    if 'segmentation' in scan_resouce_file.name:
                         # CRLM: only include CNN segmentations for default experiment
-                        if dataset == 'CRLM' and '_CNN' not in file_name:
+                        if dataset == 'CRLM' and '_CNN' not in scan_resouce_file.name:
                             continue
 
-                        segmentation_uri = scan.resources['NIFTI'].files[file_name].external_uri()
+                        segmentation_uri = scan_resouce_file.external_uri()
 
                         # Add found sources to data dicitonaries
-                        images[label] = image_uri
-                        segmentations[label] = segmentation_uri
+                        labelname = f"{label}_{str(label_id).zfill(3)}" 
+                        label_id += 1
+                        images[labelname] = image_uri
+                        segmentations[labelname] = segmentation_uri
                         ground_truths[label] = ground_truth
                         if verbose:
-                            print(f"\tIncluding patient {label}, diagnosis {ground_truth}, segmentation {file_name}.")
+                            print(f"\tIncluding patient {label}, sample ID {labelname}, diagnosis {ground_truth}, segmentation {scan_resouce_file.name}.")
 
             else:
                 # There are patients where the data is organized differently
@@ -246,6 +247,7 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
                     # Second lesion: WDLPS
                     segmentation_uri = scan.resources['NIFTI'].files['segmentation_WDLPS.nii.gz'].external_uri()
                     ground_truth = 1
+                    
 
                 elif subject.label == 'GIST-018':
                     print("Patient GIST-018 has two lesions, including both.")
@@ -264,7 +266,6 @@ def get_source_data_WORC(dataset="Lipo", verbose=True, csv_label_file=None):
                     segmentation_uri = scan.resources['NIFTI'].files['segmentation_lesion_1.nii.gz'].external_uri()
 
                 else:
-                    print(label)
                     image_uri = scan.resources['NIFTI'].files['image.nii.gz'].external_uri()
                     segmentation_uri = scan.resources['NIFTI'].files['segmentation.nii.gz'].external_uri()
                     if verbose:
@@ -309,8 +310,6 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
     if dataset not in valid_datasets:
         raise KeyError(f"{dataset} is not a valid dataset, should be one of {valid_datasets}.")
 
-    # To Do: check if the given ensembling method is valid
-
     print(f"Running experiment for dataset {dataset}.")
 
     # Create an experiment for binary classification
@@ -349,7 +348,10 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
     experiment.add_config_overrides(overrides)
 
     # We fix the random seed of the train-test cross-validation splits to
-    # facilitate reproducbility
+    # facilitate reproducibility. Alternatively, you can use the fixed splits
+    # provided by us in CSV format, which correspond with exactly the same splits:
+    # https://github.com/MStarmans91/WORCDatabase/tree/main/crossvalidationsplits.
+    # These can be provided to WORC with the expertiment.set_fixed_splits function.
     overrides = {
         'CrossValidation': {
             'fixed_seed': 'True'
@@ -360,7 +362,6 @@ def run_experiment(dataset='Lipo', coarse=False, name=None,
     # which correspond to the same setup as the above fixed seed.
     # NOTE: if you want to compare performance of another method with WORC, we strongly recommend to
     # use the cross-validation splits from these files so you have the same evaluation setup
-    
     experiment.set_fixed_splits(os.path.join(this_directory, 'crossvalidationsplits', f'crossvalidationsplits_{dataset}.csv'))
     
     # Set all sources

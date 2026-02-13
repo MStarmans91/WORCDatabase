@@ -133,3 +133,6 @@ pinfo*.csv
 
 # Exceptions: files I use locally
 get_sources_local.py
+test_default_experiments.py
+test.py
+*WORC370_*
